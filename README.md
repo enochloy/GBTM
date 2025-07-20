@@ -1,12 +1,9 @@
 # 📈 gbtm: Group-Based Trajectory Modeling in Python
 
-A Python package for **Group-Based Trajectory Modeling (GBTM)** using the Expectation-Maximization (EM) algorithm. Designed to uncover latent subgroups within longitudinal data, each following a distinct trajectory.
+## 1. Introduction
 
----
+**Group-Based Trajectory Modeling (GBTM)** is a statistical technique used to identify clusters of individuals following similar developmental trajectories over time. It assumes the population is composed of a finite number of latent subgroups, each with its own parametric time trend. 
 
-## 📘 1. Introduction
-
-**Group-Based Trajectory Modeling (GBTM)** is a statistical technique used to identify clusters of individuals following similar developmental trajectories over time. It assumes the population is composed of a finite number of latent subgroups, each with its own parametric time trend.
 
 ### Supported Distributions
 
@@ -37,7 +34,7 @@ Specific link functions are used depending on the outcome distribution:
 
 ---
 
-## ⚙️ 2. Class Parameters
+## 2. Class Parameters
 
 ### `GBTM` class
 
@@ -57,11 +54,11 @@ Specific link functions are used depending on the outcome distribution:
 ### Notes on Implementation
 
 - Assumes no static or time-varying covariates.
-- For censored normal distribution, assumes a small fixed variance (e.g., 0.05).
+- For censored normal distribution, assumes a small fixed variance (e.g. 0.05).
 
 ---
 
-## 📦 3. Class Attributes
+## 3. Class Attributes
 
 After `.fit()` is called, the following attributes are available:
 
@@ -80,7 +77,7 @@ After `.fit()` is called, the following attributes are available:
 ---
 
 
-## 🧠 4. Example Usage
+## 4. Example Usage
 
 ```python
 import numpy as np
@@ -104,7 +101,7 @@ model.fit()
 model.plot_trajectories(title="Latent class trajectories", ylabel=None, xlabel="Time", show_raw_data=True, num_raw_to_show=5)
 ```
 
-## 📚 5. References
+## 5. References
 - Nagin, D. S. (1999). Analyzing developmental trajectories: A semiparametric, group-based approach.
 - Nagin, D. S. (2005). Group-Based Modeling of Development.
 - Hall, D. B. (2000). Zero-inflated Poisson and binomial regression with random effects: a case study.
