@@ -1,6 +1,5 @@
-import pandas as pd
 import numpy as np
-from scipy.special import expit, logsumexp, gammaln
+from scipy.special import expit, gammaln
 from scipy.stats import norm
 from scipy.optimize import minimize
 from sklearn.cluster import KMeans
@@ -42,6 +41,7 @@ class CensoredNormalModel(DistributionModel):
         self.lower_bound = lower_bound
         self.upper_bound = upper_bound
         self.dist = "cnorm"
+        self.ylabel = "Value"
 
     def init_params(self, data, X, K, degree, seed=42):
         np.random.seed(seed)
@@ -155,6 +155,7 @@ class CensoredNormalModel(DistributionModel):
 class BernoulliModel(DistributionModel):
     def __init__(self):
         self.dist = "bernoulli"
+        self.ylabel = "Probability"
 
     def init_params(self, data, X, K, degree, seed=42):
         np.random.seed(seed)
@@ -231,6 +232,7 @@ class BernoulliModel(DistributionModel):
 class ZIPModel(DistributionModel):
     def __init__(self):
         self.dist = "zip"
+        self.ylabel = "Expected Count"
 
     def init_params(self, data, X, K, degree, seed=42):
         np.random.seed(seed)
@@ -394,141 +396,3 @@ class ZIPModel(DistributionModel):
             p_zero_k = expit(X @ gamma[k])
             mean_trajectories[k, :] = (1 - p_zero_k) * lambda_k
         return mean_trajectories
-
-
-class BaseGBTM:
-    def __init__(
-        self,
-        data,
-        K,
-        degree,
-        model: DistributionModel,
-        x_values=None,
-        max_iter=100,
-        tol=1e-4,
-        verbose=True,
-        seed=42,
-    ):
-        self.data = data
-        self.N, self.T = data.shape
-        self.K = K
-        self.degree = degree
-        self.model = model
-        self.X = self._design_matrix(x_values)
-        self.max_iter = max_iter
-        self.tol = tol
-        self.verbose = verbose
-        self.seed = seed
-        self.pi = np.full(K, 1 / K)
-        self.params = model.init_params(data, self.X, K, degree, seed=seed)
-
-        # Initialize attributes for results
-        self.assigned_groups = None
-        self.appa = None
-        self.entropy = None
-        self.occ = None
-        self.bic = None
-        self.aic = None
-
-    def _design_matrix(self, x_values):
-        T = self.data.shape[1]
-        if x_values is None:
-            x_values = np.arange(T) + 1
-        return np.vstack([x_values**d for d in range(self.degree + 1)]).T
-
-    def _total_loglikelihood(self):
-        total = np.sum(
-            logsumexp(
-                self.model.log_likelihood(self.data, self.X, self.K, self.params)
-                + np.log(self.pi + 1e-16),
-                axis=1,
-            )
-        )
-        return total
-
-    def _e_step(self):
-        # calculate the posterior probabilities of belonging to group K, post_k (N * K)
-        log_lik = self.model.log_likelihood(self.data, self.X, self.K, self.params)
-        log_weighted_lik = log_lik + np.log(self.pi + 1e-16)
-        log_post = log_weighted_lik - logsumexp(log_weighted_lik, axis=1, keepdims=True)
-        self.post = np.exp(log_post)
-
-    def _m_step(self):
-        self.pi = self.post.mean(axis=0)  # update prior probabilities
-
-        # update params
-        self.params = self.model.maximize(
-            self.data, self.X, self.K, self.post, self.params
-        )
-
-    def fit(self):
-        # set seed
-        np.random.seed(self.seed)
-
-        # initialize previous log_likelihood
-        ll_old = -np.inf
-
-        # EM loop
-        for i in range(self.max_iter):
-            self._e_step()
-            self._m_step()
-            ll_new = self._total_loglikelihood()  # calculate new log likelihood
-
-            if self.verbose:
-                print("Iteration {}: Total log-likelihood: {:.2f}".format(i, ll_new))
-
-            if ll_new - ll_old < self.tol:
-                if self.verbose:
-                    print(
-                        f"Convergence achieved at iteration {i}. Log-likelihood improvement less than tolerance."
-                    )
-                break
-            ll_old = ll_new
-        else:
-            if self.verbose:
-                print(
-                    f"Maximum iterations ({self.max_iter}) reached without convergence."
-                )
-
-        print(f"Completed EM Algorithm for {self.model.dist} model.")
-
-        # --- Post-convergence calculations ---
-        # 1. Assign groups
-        self.assigned_groups = np.argmax(self.post, axis=1)
-
-        # 2. Calculate BIC and AIC
-        num_params = self.model.num_estimated_params(self.K, self.degree) + (
-            self.K - 1
-        )  # Add K-1 for pi
-        self.bic = -2 * ll_new + num_params * np.log(self.N)
-        self.aic = -2 * ll_new + 2 * num_params
-
-        # 3. Calculate APPA_j = (1/n_j) * sum_{i in group_j} P(z_i = j | ...)
-        self.appa = np.zeros(self.K)
-        for k in range(self.K):
-            individuals_in_group_k = np.where(self.assigned_groups == k)[0]
-            if len(individuals_in_group_k) > 0:
-                self.appa[k] = np.mean(self.post[individuals_in_group_k, k])
-            else:
-                self.appa[k] = 0
-
-        # 4. Calculate OCC_j = (APPA_j / (1 - APPA_j)) / (pi_j / (1 - pi_j))
-        self.occ = np.zeros(self.K)
-        for k in range(self.K):
-            odds_appa_k = self.appa[k] / (1 - self.appa[k] + 1e-16)
-            odds_pi_k = self.pi[k] / (1 - self.pi[k] + 1e-16)
-            self.occ[k] = odds_appa_k / np.clip(odds_pi_k, 1e-16, np.inf)
-
-        # 5. Calculate EIC = -sum_{i,j} P(z_i = j | A_iK) log P(z_i = j | A_iK)
-        self.eic = -np.sum(self.post * np.log(self.post + 1e-16))
-
-        # Print final metrics
-        print(f"  Final Log-Likelihood: {ll_new:.2f}")
-        print(f"  BIC: {self.bic:.2f}")
-        print(f"  AIC: {self.aic:.2f}")
-        print(f"  APPA: {self.appa}")
-        print(f"  OCC: {self.occ}")
-        print(f"  Entropy Information Criterion: {self.eic:.4f}")
-
-        # Optional: Plotting can be done outside the fit method using the stored results
-        # For demonstration, we'll add it to the example usage block.
