@@ -1,5 +1,13 @@
 # 📈 gbtm: Group-Based Trajectory Modeling in Python
 
+# TO-DO:
+- Convert input from wide format to long format
+- Accept static and time-varying covariates
+- Implement multi-trajectory modelling
+- Accept missing values
+- Account for non-random subject attrition
+- Add beta distribution
+
 ## 1. Introduction
 
 **Group-Based Trajectory Modeling (GBTM)** is a statistical technique used to identify clusters of individuals following similar developmental trajectories over time. It assumes the population is composed of a finite number of latent subgroups, each with its own parametric time trend. 
