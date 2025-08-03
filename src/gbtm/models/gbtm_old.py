@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.special import logsumexp
 import matplotlib.pyplot as plt
-from .models import DistributionModel
+from ..core import DistributionModel
 
 
 class GBTM:
