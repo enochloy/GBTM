@@ -29,6 +29,7 @@ $$logit(p_t^{(j)}) = \beta_0^{(j)} + \beta_1^{(j)}t + ... + \beta_d^{(j)}t^d$$
     - The count rate, $\lambda_t^{(j)}$, is modeled using a log link function:  
 
     $$log(\lambda_t^{(j)}) = \beta_0^{(j)} + \beta_1^{(j)}t + ... + \beta_d^{(j)}t^d$$
+
     - The probability of an excess zero, $p_t^{(j)}$, is modeled using a logit link function:   
 
     $$logit(p_t^{(j)}) = \gamma_0^{(j)} + \gamma_1^{(j)}t + ... + \gamma_d^{(j)}t^d$$
