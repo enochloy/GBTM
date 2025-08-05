@@ -95,7 +95,6 @@ class GBTM:
 
         # Initialize metrics
         self.assigned_groups = None
-        self.metrics = {}  # appa, entropy, occ, bic, aic
 
     def _group_loglikelihood(self):
         for i, outcome in enumerate(self.outcome_models):
@@ -235,14 +234,6 @@ class GBTM:
         self.eic = -np.sum(
             (self.post_wide.values * np.log(self.post_wide.values + 1e-16))
         )
-
-        self.metrics = {
-            "bic": self.bic,
-            "aic": self.aic,
-            "appa": self.appa,
-            "occ": self.occ,
-            "eic": self.eic,
-        }
 
         # Print final metrics
         print(f"  Final Log-Likelihood: {ll_new:.2f}")
